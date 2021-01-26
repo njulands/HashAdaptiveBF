@@ -133,7 +133,7 @@ void BloomFilter::AddAll(std::vector<HABFilterKey> &keys){
     uint32_t bits = data_.size() * 8;
     char *array = &(data_[0]);
     for(int i=0; i<keys.size(); i++){
-        uint64_t hash_key_ = XXH3_64bits(&keys[i].data_->str[0], keys[i].data_->str.size()); 
+        uint64_t hash_key_ = XXH3_128bits(&keys[i].data_->str[0], keys[i].data_->str.size()).low64; 
         for(uint8_t j=0; j<HASH_NUM; j++){         
             uint32_t bitpos = GetHashFromHash(hash_key_, keys[i].hash_map_[j], bits);
             array[bitpos / 8] |= (1 << (bitpos % 8));
@@ -144,7 +144,7 @@ void BloomFilter::AddAll(std::vector<HABFilterKey> &keys){
 bool BloomFilter::Contain(HABFilterKey &key){
     uint32_t bytes = data_.size();
     uint32_t bits = bytes * 8;
-    uint64_t hash_key_ = XXH3_64bits(&key.data_->str[0], key.data_->str.size()); 
+    uint64_t hash_key_ = XXH3_128bits(&key.data_->str[0], key.data_->str.size()).low64; 
     for(int i=0 ; i<HASH_NUM; i++){
         uint32_t bitpos = GetHashFromHash(hash_key_, key.hash_map_[i], bits);
         if ((data_[bitpos / 8] & (1 << (bitpos % 8))) == 0) return 0;
@@ -186,7 +186,7 @@ void HashExpressor::Query(HABFilterKey &key){
     HashExpressorCell cell;
 
     //get first cell by entry_hash_
-    uint64_t hash_key_ = XXH3_64bits(&key.data_->str[0], key.data_->str.size());
+    uint64_t hash_key_ = XXH3_128bits(&key.data_->str[0], key.data_->str.size()).low64;
     uint32_t h =  GetHashFromHash(hash_key_, 0, cell_num_);
 
     int queryed_n_ = 0;
@@ -204,7 +204,7 @@ void HashExpressor::Query(HABFilterKey &key){
 
 void HashExpressor::Add(HABFilterKey &key, std::vector<uint8_t> &insert_sequence_){
     HashExpressorCell cell;
-    uint64_t hash_key_ = XXH3_64bits(&key.data_->str[0], key.data_->str.size());
+    uint64_t hash_key_ = XXH3_128bits(&key.data_->str[0], key.data_->str.size()).low64;
     uint32_t h =  GetHashFromHash(hash_key_, 0, cell_num_);
 
     for(int i=0; i<insert_sequence_.size()-1; i++){
@@ -224,7 +224,7 @@ bool HashExpressor::GetInsertSequence(HABFilterKey &key, std::vector<uint8_t> &i
 
     //get first cell by entry_hash_
     HashExpressorCell cell;
-    uint64_t hash_key_ = XXH3_64bits(&key.data_->str[0], key.data_->str.size());
+    uint64_t hash_key_ = XXH3_128bits(&key.data_->str[0], key.data_->str.size()).low64;
     uint32_t h =  GetHashFromHash(hash_key_, 0, cell_num_);
     getCell(h, cell);
 
@@ -335,7 +335,7 @@ FastHABFilter::FastHABFilter(float bits_per_key_, int pos_count_) : k_(HASH_NUM)
     uint32_t hashexpressor_size_ = bits / (ALLOCATION_RATIO + 1);
     bloom_.CreateNewFilter(bloom_size_);
     hash_expressor_.CreateNewFilter(hashexpressor_size_);
-    std::cout << "QuickHABF Size:" << (bloom_size_ + hashexpressor_size_) / (double)(8*1024*1024)  << std::endl;
+    std::cout << "FastHABF Size:" << (bloom_size_ + hashexpressor_size_) / (double)(8*1024*1024)  << std::endl;
 }
 
 void FastHABFilter::AddAndOptimize(const std::vector<Slice *> &pos_keys_, const std::vector<Slice *> &neg_keys_){
@@ -363,9 +363,9 @@ void FastHABFilter::AddAndOptimize(const std::vector<Slice *> &pos_keys_, const 
     uint64_t * neg_cache = new uint64_t[neg_n]; 
 
     for(int i=0; i<pos_n; i++)
-        pos_cache[i] = XXH3_64bits(&habf_pos_keys_[i].data_->str[0], habf_pos_keys_[i].data_->str.size());
+        pos_cache[i] = XXH3_128bits(&habf_pos_keys_[i].data_->str[0], habf_pos_keys_[i].data_->str.size()).low64;
     for(int i=0; i<neg_n; i++)
-        neg_cache[i] = XXH3_64bits(&habf_neg_keys_[i].data_->str[0], habf_neg_keys_[i].data_->str.size());
+        neg_cache[i] = XXH3_128bits(&habf_neg_keys_[i].data_->str[0], habf_neg_keys_[i].data_->str.size()).low64;
 
         
     // std::cout << "Assign all keys..." << std::endl;
@@ -460,7 +460,7 @@ void FastHABFilter::Optimize(Tuple_V * V_, std::vector<HABFilterKey *> &CQ_){
         std::vector<uint8_t> optimal_insert_sequence_; // optimal hash idx insertion sequence of optimal_pk_ into hashexpressor
         std::pair<uint32_t, uint32_t> pre_next_; // previous hash position of optimal_pk_ and next hash idx which optimal_pk_ will adjust to
 
-        uint64_t hash_ck_ = XXH3_64bits(&ck->data_->str[0], ck->data_->str.size());
+        uint64_t hash_ck_ = XXH3_128bits(&ck->data_->str[0], ck->data_->str.size()).low64;
         for(uint8_t &hashidx_ck_ : ck->hash_map_){
             if(min_cost_) break; // the minimum adjustment has been got already
 
@@ -469,7 +469,7 @@ void FastHABFilter::Optimize(Tuple_V * V_, std::vector<HABFilterKey *> &CQ_){
             if(!V_[h1].singleflag_) continue; // V_[h1] is mapped more than once positive key,
             // std::cout << (V_[h1].keyid == NULL) << std::endl;
             HABFilterKey *pk = V_[h1].keyid;
-            uint64_t hash_pk_ = XXH3_64bits(&pk->data_->str[0], pk->data_->str.size());
+            uint64_t hash_pk_ = XXH3_128bits(&pk->data_->str[0], pk->data_->str.size()).low64;
             // hash func mapped to h is changed to the hash func which is not in hashset of fk with minimum cost
             for(uint8_t hashidx_ = 1; hashidx_ < hashset_size_; hashidx_++){ // Traverse all candidate hash func
                 if(std::find(pk->hash_map_, pk->hash_map_ + k_, hashidx_) == pk->hash_map_ + k_){ 

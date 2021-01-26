@@ -22,7 +22,7 @@ int main(){
     const string dataset_ = "shalla"; // shalla or ycsb
     const double space_size_ = 1.5; // total space size of data structure (MB)
     dataloader dl;
-    if(dl.load(dataset_, true)){
+    if(dl.load(dataset_, false)){
         cout << "keys size (positives, negatives): (" << dl.pos_keys_.size() << "," << dl.neg_keys_.size() << ")" << endl;
         std::cout << "Space size allocated for each data structure: (" << space_size_ << " MB)" << endl;
         double bits_per_key = (double)(space_size_ * 1024 * 1024 * 8) / (double) dl.pos_keys_.size();
@@ -118,7 +118,6 @@ void testBloom_XXH128(dataloader &dl, double bits_per_key){
     }
         
     t2 = steady_clock::now();
-    std::cout << total_cost_ << std::endl;
     double query_perkey_time =  1000000000.0 * duration<double>(t2 - t1).count() / (double)(dl.pos_keys_.size()+dl.neg_keys_.size());
     std::cout<<"query time/key (ns):"<< query_perkey_time <<endl;
     std::cout<<"Weighted FPR:"<< (double)(fpr_c*100) / total_cost_ << "%" <<endl;
