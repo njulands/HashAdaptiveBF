@@ -3,6 +3,7 @@ import math
 import xxhash
 from bitarray import bitarray
 
+
 class BestBloomFilter(object):
     def __init__(self, items_count, fp_prob):
         self.fp_prob = fp_prob
