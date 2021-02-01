@@ -7,13 +7,10 @@ from utils import *
 import mmh3
 import pickle
 class SLBF(object):
-    def __init__(self, model, data, b, threshold = 0.9, is_train = True, using_cache = False, cache_path="", cache_name = "shalla"):
+    def __init__(self, model, data, b, threshold = 0.9, is_train = True):
         self.model = model
         self.threshold = threshold
         self.is_train = is_train
-        self.using_cache = using_cache
-        self.cache_name = cache_name
-        self.cache_path = cache_path
         (s1, s2) = split_negatives(data)
         if self.is_train:
             print("Training model with train, dev, positives", len(s1), len(s2), len(data.positives))   
@@ -36,26 +33,8 @@ class SLBF(object):
             return True
         return False
 
-    def checkbyScore(self, score, item):
-        if not self.initial_filter.check(item):
-            return False
-        if score > self.threshold:
-            return True
-        if self.backup_filter.check(item):
-            return True
-        return False
-
     def getNegativesCache(self, negatives):
-        if not self.using_cache:
-            negatives_preds = self.model.predicts(negatives)
-            f = open(self.cache_path+"tmp/negatives_preds_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(negatives_preds, f)
-            f.close()
-        else:
-            f = open(self.cache_path+"tmp/negatives_preds_"+self.cache_name+".pkl", 'rb')
-            negatives_preds = pickle.load(f)
-            f.close()
-        return negatives_preds
+        negatives_preds = self.model.predicts(negatives)
 
     def create_bloom_filter(self, b, data):
         print("Creating bloom filter")
@@ -108,15 +87,7 @@ class SLBF(object):
         return final_results
 
     def measure_learned_Fp(self, ts2):
-        if not self.using_cache:
-            predictions = self.model.predicts(ts2)
-            f = open(self.cache_path+"tmp/ts2_preds_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(predictions, f)
-            f.close()
-        else:
-            f = open(self.cache_path+"tmp/ts2_preds_"+self.cache_name+".pkl", 'rb')
-            predictions = pickle.load(f)
-            f.close()
+        predictions = self.model.predicts(ts2)
         tot = 0
         for val in predictions:
             if val > self.threshold:
@@ -125,15 +96,7 @@ class SLBF(object):
         print("learned_Fp: %f", self.learned_Fp)
 
     def measure_learned_Fn(self, tp):
-        if not self.using_cache:
-            predictions = self.model.predicts(tp)
-            f = open(self.cache_path+"tmp/tp_preds_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(predictions, f)
-            f.close()
-        else:
-            f = open(self.cache_path+"tmp/tp_preds_"+self.cache_name+".pkl", 'rb')
-            predictions = pickle.load(f)
-            f.close()
+        predictions = self.model.predicts(tp)
         tot = 0
         for val in predictions:
             if val <= self.threshold:
