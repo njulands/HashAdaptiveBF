@@ -14,40 +14,29 @@ def test_shalla_cost(total_size=100000, model_size = int(70*1024*8)):
     begin_time = time()
     data = Data(positives, negatives)
     model = get_shalla_model()
-    lbf = LBF(model, data, using_Fpr = False, total_size = total_size, model_size = model_size, is_train = False, cache_path=data_dir+"/tmp/LBF/", using_cache = True, cache_name="shalla_cost")
+    lbf = LBF(model, data, using_Fpr = False, total_size = total_size, model_size = model_size, is_train = True)
     end_time = time()
     run_time = end_time - begin_time
     print ('LBF buildtime：',run_time)
     # cost test
-    # print("cost testing")
-    # cost = 0
-    # for i in range(len(negatives)):
-    #     cost += lbf.check(negatives[i])*neg_cost[i]
-    # print("cost:", cost)
+    print("cost testing")
+    cost = 0
+    for i in range(len(negatives)):
+        cost += lbf.check(negatives[i])*neg_cost[i]
+    print("cost:", cost)
 
-    # cost test by cache
-    negatives_cache = lbf.getNegativesCache(data.negatives)
+    # cost test
     print("cost testing")
     cost = 0
     count = 0
     total_cost = 0
     for i in range(len(negatives)):
-        if lbf.checkbyScore(negatives_cache[i], negatives[i]):
+        if lbf.check(negatives_cache[i], negatives[i]):
             count+=1
             cost += neg_cost[i]
         total_cost+=neg_cost[i]
-    print("skewed FPR:", 100*cost / total_cost)
+    print("Weighted FPR:", 100*cost / total_cost)
     print("fpr:", 100*count/ (len(negatives)))
-    # begin_time = time()
-    # count = 1000
-    # for i in range(int(count/2)):
-    #     lbf.check(positives[i])
-    # for i in range(int(count/2)):
-    #     lbf.check(negatives[i])
-    # end_time = time()
-    # query_perkey_time = (end_time-begin_time) / count
-    # print("LBF query time/key: ", query_perkey_time)
-
 
 
 
@@ -56,37 +45,23 @@ def test_ycsb(total_size=100000, model_size = int(70*1024*8)):
     begin_time = time()
     data = Data(positives, negatives)
     model = get_ycsb_model()
-    lbf = LBF(model, data, using_Fpr = False, total_size = total_size, model_size = model_size, is_train = True, using_cache = False, cache_path=data_dir+"/tmp/LBF/", cache_name="ycsb")
+    lbf = LBF(model, data, using_Fpr = False, total_size = total_size, model_size = model_size, is_train = True)
     end_time = time()
     run_time = end_time - begin_time
     print ('LBF buildtime：',run_time)
-    # cost test
-    # print("cost testing")
-    # cost = 0
-    # for i in range(len(negatives)):
-    #     cost += lbf.check(negatives[i])*neg_cost[i]
-    # print("cost:", cost)
-    negatives_cache = lbf.getNegativesCache(data.negatives)
+   
+    # cost test by cache
     print("cost testing")
     cost = 0
     count = 0
     total_cost = 0
     for i in range(len(negatives)):
-        if lbf.checkbyScore(negatives_cache[i], negatives[i]):
+        if lbf.check(negatives[i]):
             count+=1
             cost += neg_cost[i]
         total_cost+=neg_cost[i]
-    print("skewed FPR:", cost / total_cost)
-    print("fpr:", count/ (len(negatives)))
-    # begin_time = time()
-    # count = 1000
-    # for i in range(int(count/2)):
-    #     lbf.check(positives[i])
-    # for i in range(int(count/2)):
-    #     lbf.check(negatives[i])
-    # end_time = time()
-    # query_perkey_time = (end_time-begin_time) / count
-    # print("LBF query time/key: ", query_perkey_time)
+    print("Weighted FPR:", 100*cost / total_cost)
+    print("fpr:", 100*count/ (len(negatives)))
 
 
 if __name__=='__main__':
@@ -97,11 +72,7 @@ if __name__=='__main__':
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
     '''Shalla test'''
-    # fp_rate = 0.0018
-    # test_shalla(fp_rate=fp_rate)
-
-    '''Shalla Cost test'''
-    total_size = int(1.25*1024*1024*8)
+    total_size = int(1.5*1024*1024*8)
     model_size = int(70*1024*8)
     test_shalla_cost(total_size = total_size, model_size = model_size)
 
