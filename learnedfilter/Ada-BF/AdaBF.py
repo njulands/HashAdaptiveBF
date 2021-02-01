@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import pickle
 from keras.models import Sequential, load_model
+import xxhash
 from sklearn.utils import murmurhash3_32
 from random import randint
 
@@ -14,7 +15,7 @@ from random import randint
 def hashfunc(m):
     ss = randint(1, 99999999)
     def hash_m(x):
-        return murmurhash3_32(x,seed=ss)%m
+        return xxhash.xxh128(x,ss).intdigest() % m
     return hash_m
 
 class Ada_BloomFilter():
@@ -76,35 +77,15 @@ def Find_Optimal_Parameters(c_min, c_max, num_group_min, num_group_max, R_sum, t
                 ix = min(np.where(score_s < thresholds)[0])
                 k = k_max - ix
                 bloom_filter.insert(url_s, k)
-            # ML_positive = train_negative.loc[(train_negative['score'] >= thresholds[-2]), 'url']
-            # url_negative = train_negative.loc[(train_negative['score'] < thresholds[-2]), 'url']
-            # score_negative = train_negative.loc[(train_negative['score'] < thresholds[-2]), 'score']
-
-            # test_result = np.zeros(len(url_negative))
-            # ss = 0
-            # for score_s, url_s in zip(score_negative, url_negative):
-            #     ix = min(np.where(score_s < thresholds)[0])
-            #     # thres = thresholds[ix]
-            #     k = k_max - ix
-            #     test_result[ss] = bloom_filter.test(url_s, k)
-            #     ss += 1
-            # FP_items = sum(test_result) + len(ML_positive)
-            # print('False positive items: %d, Number of groups: %d, c = %f' %(FP_items, k_max, round(c, 2)))
-
-            # if FP_opt > FP_items:
-            #     FP_opt = FP_items
             bloom_filter_opt = bloom_filter
             thresholds_opt = thresholds
             k_max_opt = k_max
     return bloom_filter_opt, thresholds_opt, k_max_opt
 
 class AdaBF(object):
-    def __init__(self, model, data, num_group = 16, c=3, R_sum = 22000000, is_train = True, using_cache = False, cache_path="", cache_name = "shalla"):
+    def __init__(self, model, data, num_group = 16, c=3, R_sum = 22000000, is_train = True):
         self.model = model
         self.is_train = is_train
-        self.using_cache = using_cache
-        self.cache_name = cache_name
-        self.cache_path = cache_path
         self.num_group = num_group
         self.c = c
         self.R_sum = R_sum
@@ -133,23 +114,15 @@ class AdaBF(object):
 
     def gen_store_Scores(self, positives, negatives):
         print("gen_store_Scores")
-        if not self.using_cache:
-            print("store negative scores...")
-            scores= np.array(self.model.predicts(negatives))
-            # print(scores)
-            negatives_dict = {'url': [p for p in negatives], 'score': scores.flatten().tolist()}
-            negative_sample = pd.DataFrame(negatives_dict)
-            negative_sample.to_pickle(self.cache_path+"tmp/negative_sample_"+self.cache_name+".pkl")
+        scores= np.array(self.model.predicts(negatives))
+        # print(scores)
+        negatives_dict = {'url': [p for p in negatives], 'score': scores.flatten().tolist()}
+        negative_sample = pd.DataFrame(negatives_dict)
 
-            print("store positive scores...")
-            scores=np.array(self.model.predicts(positives))
-            # print(scores)
-            positives_dict = {'url': [p for p in positives], 'score': scores.flatten().tolist()}
-            positive_sample = pd.DataFrame(positives_dict)
-            positive_sample.to_pickle(self.cache_path+"tmp/positive_sample_"+self.cache_name+".pkl")
-        else:
-            negative_sample = pd.read_pickle(self.cache_path+"tmp/negative_sample_"+self.cache_name+".pkl")
-            positive_sample = pd.read_pickle(self.cache_path+"tmp/positive_sample_"+self.cache_name+".pkl")
+        scores=np.array(self.model.predicts(positives))
+        # print(scores)
+        positives_dict = {'url': [p for p in positives], 'score': scores.flatten().tolist()}
+        positive_sample = pd.DataFrame(positives_dict)
         
         return positive_sample, negative_sample
 
