@@ -110,5 +110,5 @@ class LBF(object):
 
         self.threshold = predictions[fp_index]
 
-    
+     
 
