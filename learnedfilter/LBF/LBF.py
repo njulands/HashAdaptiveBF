@@ -4,19 +4,15 @@ from BloomFilter import BestBloomFilter, BloomFilter
 import math
 import random
 from utils import *
-import mmh3
 import pickle
 
 
 class LBF(object):
-    def __init__(self, model, data, using_Fpr = True, fp_rate = 0.01, total_size = 100000, model_size = int(70*1024*8), is_train = True, using_cache = False, cache_path="", cache_name="shalla"):
+    def __init__(self, model, data, using_Fpr = True, fp_rate = 0.01, total_size = 100000, model_size = int(70*1024*8), is_train = True):
         self.model = model
         self.threshold = 0.9
         self.using_Fpr = using_Fpr
         self.is_train = is_train
-        self.using_cache = using_cache
-        self.cache_name = cache_name
-        self.cache_path = cache_path
         (s1, s2) = split_negatives(data)
         if self.is_train:
             self.fit(data.positives, data.negatives)
@@ -37,53 +33,15 @@ class LBF(object):
             return True
         return self.bloom_filter.check(item)
 
-    def checkbyScore(self, score, item):
-        if score > self.threshold:
-            return True
-        return self.bloom_filter.check(item)
-
-    def getNegativesCache(self, negatives):
-        if not self.using_cache:
-            negatives_preds = self.model.predicts(negatives)
-            f = open(self.cache_path+"tmp/negatives_preds_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(negatives_preds, f)
-            f.close()
-        else:
-            f = open(self.cache_path+"tmp/negatives_preds_"+self.cache_name+".pkl", 'rb')
-            negatives_preds = pickle.load(f)
-            f.close()
-        return negatives_preds
 
     def create_bloom_filter(self, data, test_negatives):
         print("Creating bloom filter")
-        if not self.using_cache:
-            print("predicts positives")
-            positives_preds = self.model.predicts(data.positives)
-            f = open(self.cache_path+"tmp/positives_preds_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(positives_preds, f)
-            f.close()
-            positives_preds_sort = positives_preds.copy()
-            positives_preds_sort.sort()
-            print("predicts test_negatives")
-            tn_preds = self.model.predicts(test_negatives)
-            tn_preds.sort()
-            f = open(self.cache_path+"tmp/positives_preds_sort_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(positives_preds_sort, f)
-            f.close()
-            f = open(self.cache_path+"tmp/tn_preds_"+self.cache_name+".pkl", 'wb')
-            pickle.dump(tn_preds, f)
-            f.close()
-        else:
-            f = open(self.cache_path+"tmp/positives_preds_"+self.cache_name+".pkl", 'rb')
-            positives_preds = pickle.load(f)
-            f.close()
-            f = open(self.cache_path+"tmp/positives_preds_sort_"+self.cache_name+".pkl", 'rb')
-            positives_preds_sort = pickle.load(f)
-            f.close()
-            f = open(self.cache_path+"tmp/tn_preds_"+self.cache_name+".pkl", 'rb')
-            tn_preds = pickle.load(f)
-            f.close()
-
+        print("predicts positives")
+        positives_preds = self.model.predicts(data.positives)
+        positives_preds_sort = positives_preds.copy()
+        positives_preds_sort.sort()
+        tn_preds = self.model.predicts(test_negatives)
+        tn_preds.sort()
         thresh_o = 1
         thresh_max = 1
         k_o = 4
@@ -102,7 +60,7 @@ class LBF(object):
                 thresh_o = positive_thresh
                 k_o = k
 
-        self.bloom_filter = BloomFilter(k_o, self.m, string_digest)
+        self.bloom_filter = BloomFilter(k_o, self.m)
         n_o = int((self.m / k_o) * math.log(2))
         self.threshold = thresh_o
         print("thresh_o",thresh_o)
@@ -147,16 +105,9 @@ class LBF(object):
 
     def get_threshold(self, test_negatives):
         fp_index = math.ceil((len(test_negatives) * (1 - self.fp_rate/2)))
-        if not self.using_cache:
-            predictions = self.model.predicts(test_negatives)
-            predictions.sort()
-            # f = open(self.cache_path+"tmp/tn_preds_"+self.cache_name+".pkl", 'wb')
-            # pickle.dump(predictions, f)
-            # f.close()
-        else:
-            f = open(self.cache_path+"tmp/tn_preds_"+self.cache_name+".pkl", 'rb')
-            predictions = pickle.load(f)
-            f.close()
+        predictions = self.model.predicts(test_negatives)
+        predictions.sort()
+
         self.threshold = predictions[fp_index]
 
     
