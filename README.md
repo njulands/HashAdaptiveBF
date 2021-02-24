@@ -1,4 +1,4 @@
-# ICDE-2021 paper #455 - Hash-Adaptive-Bloom-Filter
+# ICDE-2021 - Hash-Adaptive-Bloom-Filter
 
 # About this repo
 This repo contains the source code of HABF and all comparison algorithms in our experiments, which are as shown in the following table.
