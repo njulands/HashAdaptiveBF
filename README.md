@@ -14,9 +14,6 @@ This repo contains the source code of HABF and comparison algorithms in our expe
 |SLBF|M. Mitzenmacher, “A model for learned Bloom filters and optimizing by sandwiching,” in Advances in Neural Information Processing Systems. Curran Associates, Inc., 2018.Implementation - [/learnedfilter/SLBF](https://github.com/AnonymousAuthor455/HashAdaptiveBF/blob/master/learnedfilter/SLBF)|
 |AdaBF|Z. Dai and A. Shrivastava, “Adaptive learned Bloom filter (Ada-BF): Efficient utilization of the classifier,” arXiv preprint, 2019. Implementation: https://github.com/DAIZHENWEI/Ada-BF|
 
-# Our Technical Report
-[TechnicalReport.pdf](https://github.com/AnonymousAuthor455/HashAdaptiveBF/blob/main/TechnicalReport.pdf)
-
 # Requirement 
    1. cmake@3+
    2. make
